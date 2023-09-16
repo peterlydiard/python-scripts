@@ -6,8 +6,9 @@ import shutil
 import hashlib
 import datetime
 
-# Source and destination directories
-source_dir = "/home/peter/Pictures"
+# List of source directories to be backed up
+source_dirs = ['/home/peter/Pictures', '/home/peter/bash']
+# Destination directory
 backup_base_dir = '/home/peter/History'
 
 # Function to calculate the MD5 hash of a file
@@ -36,17 +37,12 @@ def build_existing_hash_list(backup_base_dir):
     return existing_hashes
 
 # Function to perform an incremental backup
-def incremental_backup(source_dir, backup_base_dir):
+def incremental_backup(source_dirs, backup_base_dir):
     # Get the current date as a string (e.g., "2023-09-15")
     current_date = datetime.date.today().strftime("%Y-%m-%d")
 
     # Create a subdirectory with the current date in the backup base directory
     backup_dir = os.path.join(backup_base_dir, current_date)
-    
-    file_system = list(os.walk(source_dir))
-    if file_system == []:
-        print("No file system at ", source_dir)
-        return
     
     # Create a list to store information about backed up files
     backup_info = []
@@ -54,22 +50,23 @@ def incremental_backup(source_dir, backup_base_dir):
     # Build a set of existing MD5 hashes
     existing_hashes = build_existing_hash_list(backup_base_dir)
 
-    for root, _, files in file_system:
-        for file in files:
-            source_file = os.path.join(root, file)
-            relative_path = os.path.relpath(source_file, source_dir)
-            backup_file = os.path.join(backup_dir, relative_path)
-            
-            # Calculate the MD5 hash of the source file
-            file_hash = calculate_hash(source_file)
+    for source_dir in source_dirs:
+        for root, _, files in os.walk(source_dir):
+            for file in files:
+                source_file = os.path.join(root, file)
+                relative_path = os.path.relpath(source_file, source_dir)
+                backup_file = os.path.join(backup_dir, relative_path)
 
-            if file_hash not in existing_hashes:
-                os.makedirs(os.path.dirname(backup_file), exist_ok=True)
-                shutil.copy2(source_file, backup_file)
-                print(f"Backed up: {relative_path} to {backup_dir}")
+                # Calculate the MD5 hash of the source file
+                file_hash = calculate_hash(source_file)
 
-                # Add file information to the backup_info list
-                backup_info.append((source_file, backup_file, file_hash))
+                if file_hash not in existing_hashes:
+                    os.makedirs(os.path.dirname(backup_file), exist_ok=True)
+                    shutil.copy2(source_file, backup_file)
+                    print(f"Backed up: {relative_path} to {backup_dir}")
+
+                    # Add file information to the backup_info list
+                    backup_info.append((source_file, backup_file, file_hash))
 
     
     # Create and save the backup database text file
@@ -83,4 +80,4 @@ def incremental_backup(source_dir, backup_base_dir):
     print(f"Backup database saved to: {database_file}")
 
 if __name__ == "__main__":
-    incremental_backup(source_dir, backup_base_dir)
+    incremental_backup(source_dirs, backup_base_dir)

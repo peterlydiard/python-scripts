@@ -2,7 +2,12 @@ import os
 import shutil
 import hashlib
 import datetime
+import logging
 from backup_config import source_dirs, backup_base_dir, excluded_dirs  # Import the configuration
+
+# Configure the logging
+log_file = os.path.join(backup_base_dir, 'backup_log.txt')
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # Function to calculate the MD5 hash of a file
 def calculate_hash(file_path):
@@ -32,23 +37,31 @@ def build_existing_hash_list(backup_base_dir):
 # Function to check if a directory path exists and has necessary permissions
 def check_directory(path, write=False):
     if not os.path.exists(path):
-        print(f"Error: Directory does not exist: {path}")
+        error_msg = f"Error: Directory does not exist: {path}"
+        print(error_msg)
+        logging.error(error_msg)
         return False
     if not os.access(path, os.R_OK):
-        print(f"Error: Insufficient permissions to read directory: {path}")
+        error_msg = f"Error: Insufficient permissions to read directory: {path}"
+        print(error_msg)
+        logging.error(error_msg)
         return False
     if write and not os.access(path, os.W_OK):
-        print(f"Error: Insufficient permissions to write to directory: {path}")
+        error_msg = f"Error: Insufficient permissions to write to directory: {path}"
+        print(error_msg)
+        logging.error(error_msg)
         return False
     return True
 
 # Check if source and backup directories exist and have necessary permissions
 if not all(check_directory(source_dir) for source_dir in source_dirs):
     print("Please check source directory paths and permissions.")
+    logging.error("Error: Source directory paths or permissions are invalid.")
     exit(1)
 
 if not check_directory(backup_base_dir, write=True):
     print("Please check backup base directory path and write permissions.")
+    logging.error("Error: Backup base directory path or write permissions is invalid.")
     exit(1)
 
 # Function to perform an incremental backup
@@ -96,6 +109,10 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
             db.write(f"MD5 Hash: {file_hash}\n\n")
 
     print(f"Backup database saved to: {database_file}")
+
+    # Log the date and number of files included in the backup
+    num_files_in_backup = len(backup_info)
+    logging.info(f"Backup Date: {current_date}, Number of Files: {num_files_in_backup}")
 
 if __name__ == "__main__":
     incremental_backup(source_dirs, backup_base_dir, excluded_dirs)

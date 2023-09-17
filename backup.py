@@ -30,8 +30,8 @@ def build_existing_hash_list(backup_base_dir):
                 with open(database_file, 'r') as db:
                     lines = db.readlines()
                     for i in range(2, len(lines), 4):
-                        md5_hash = lines[i].strip().split(": ")[1]
-                        existing_hashes.add(md5_hash)
+                        file_key = lines[i - 2].strip()[8:]  # Extract the file key from the source line
+                        existing_hashes.add(file_key)
     return existing_hashes
 
 # Function to check if a directory path exists and has necessary permissions
@@ -61,7 +61,7 @@ if not all(check_directory(source_dir) for source_dir in source_dirs):
 
 if not check_directory(backup_base_dir, write=True):
     print("Please check backup base directory path and write permissions.")
-    logging.error("Error: Backup base directory path or write permissions is invalid.")
+    logging.error("Error: Backup base directory path or write permissions are invalid.")
     exit(1)
 
 # Function to perform an incremental backup
@@ -72,8 +72,8 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
     # Create a list to store information about backed up files
     backup_info = []
 
-    # Build a set of existing MD5 hashes
-    existing_hashes = build_existing_hash_list(backup_base_dir)
+    # Build a set of existing file keys
+    existing_file_keys = build_existing_hash_list(backup_base_dir)
 
     for source_dir in source_dirs:
         for root, dirs, files in os.walk(source_dir):
@@ -87,7 +87,10 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
                 # Calculate the MD5 hash of the source file
                 file_hash = calculate_hash(source_file)
 
-                if file_hash not in existing_hashes:
+                # Construct a unique key for each file based on source path, relative path, and hash
+                file_key = f"{source_dir}|{relative_path}|{file_hash}"
+
+                if file_key not in existing_file_keys:
                     # Build the backup directory structure with source directories as subdirectories
                     source_dir_name = os.path.basename(source_dir)
                     backup_dir = os.path.join(backup_base_dir, current_date, source_dir_name)
@@ -98,15 +101,15 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
                     print(f"Backed up: {relative_path} to {backup_file}")
 
                     # Add file information to the backup_info list
-                    backup_info.append((source_file, backup_file, file_hash))
+                    backup_info.append((source_file, backup_file, file_key))
 
     # Create and save the backup database text file
     database_file = os.path.join(backup_base_dir, f"backup_database_{current_date}.txt")
     with open(database_file, 'w') as db:
-        for source_file, backup_file, file_hash in backup_info:
+        for source_file, backup_file, file_key in backup_info:
             db.write(f"Source: {source_file}\n")
             db.write(f"Backup: {backup_file}\n")
-            db.write(f"MD5 Hash: {file_hash}\n\n")
+            db.write(f"File Key: {file_key}\n\n")
 
     print(f"Backup database saved to: {database_file}")
 

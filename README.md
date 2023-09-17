@@ -1,2 +1,2 @@
 # python-scripts
-Python utilities
+Python utilities - compatible with Python 3.5 and above.

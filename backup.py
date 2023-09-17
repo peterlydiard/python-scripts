@@ -2,13 +2,7 @@ import os
 import shutil
 import hashlib
 import datetime
-
-# List of source directories to be backed up
-source_dirs = ['/home/peter/Pictures', '/home/peter/bash']
-backup_base_dir = '/home/peter/History'
-
-# List of directories to be excluded from backup
-excluded_dirs = ['/home/peter/Pictures/Saved Pictures']
+from backup_config import source_dirs, backup_base_dir, excluded_dirs  # Import the configuration
 
 # Function to calculate the MD5 hash of a file
 def calculate_hash(file_path):
@@ -34,6 +28,28 @@ def build_existing_hash_list(backup_base_dir):
                         md5_hash = lines[i].strip().split(": ")[1]
                         existing_hashes.add(md5_hash)
     return existing_hashes
+
+# Function to check if a directory path exists and has necessary permissions
+def check_directory(path, write=False):
+    if not os.path.exists(path):
+        print(f"Error: Directory does not exist: {path}")
+        return False
+    if not os.access(path, os.R_OK):
+        print(f"Error: Insufficient permissions to read directory: {path}")
+        return False
+    if write and not os.access(path, os.W_OK):
+        print(f"Error: Insufficient permissions to write to directory: {path}")
+        return False
+    return True
+
+# Check if source and backup directories exist and have necessary permissions
+if not all(check_directory(source_dir) for source_dir in source_dirs):
+    print("Please check source directory paths and permissions.")
+    exit(1)
+
+if not check_directory(backup_base_dir, write=True):
+    print("Please check backup base directory path and write permissions.")
+    exit(1)
 
 # Function to perform an incremental backup
 def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
@@ -83,4 +99,3 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
 
 if __name__ == "__main__":
     incremental_backup(source_dirs, backup_base_dir, excluded_dirs)
-

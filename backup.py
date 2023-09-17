@@ -1,6 +1,3 @@
-# ------------------------------
-# Imports
-# ------------------------------
 import os
 import shutil
 import hashlib
@@ -8,11 +5,10 @@ import datetime
 
 # List of source directories to be backed up
 source_dirs = ['/home/peter/Pictures', '/home/peter/bash']
-# Destination directory
 backup_base_dir = '/home/peter/History'
 
 # List of directories to be excluded from backup
-excluded_dirs = ['/home/peter/Pictures/Windows Spotlight Images']
+excluded_dirs = ['/home/peter/Pictures/Saved Pictures']
 
 # Function to calculate the MD5 hash of a file
 def calculate_hash(file_path):
@@ -40,13 +36,10 @@ def build_existing_hash_list(backup_base_dir):
     return existing_hashes
 
 # Function to perform an incremental backup
-def incremental_backup(source_dirs, backup_base_dir):
+def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
     # Get the current date as a string (e.g., "2023-09-15")
     current_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    # Create a subdirectory with the current date in the backup base directory
-    backup_dir = os.path.join(backup_base_dir, current_date)
-    
     # Create a list to store information about backed up files
     backup_info = []
 
@@ -55,27 +48,29 @@ def incremental_backup(source_dirs, backup_base_dir):
 
     for source_dir in source_dirs:
         for root, dirs, files in os.walk(source_dir):
-                    
             # Exclude directories and their subdirectories based on the excluded_dirs list
             dirs[:] = [d for d in dirs if os.path.join(root, d) not in excluded_dirs]
 
             for file in files:
                 source_file = os.path.join(root, file)
                 relative_path = os.path.relpath(source_file, source_dir)
-                backup_file = os.path.join(backup_dir, relative_path)
 
                 # Calculate the MD5 hash of the source file
                 file_hash = calculate_hash(source_file)
 
                 if file_hash not in existing_hashes:
+                    # Build the backup directory structure with source directories as subdirectories
+                    source_dir_name = os.path.basename(source_dir)
+                    backup_dir = os.path.join(backup_base_dir, current_date, source_dir_name)
+                    backup_file = os.path.join(backup_dir, relative_path)
+
                     os.makedirs(os.path.dirname(backup_file), exist_ok=True)
                     shutil.copy2(source_file, backup_file)
-                    print(f"Backed up: {relative_path} to {backup_dir}")
+                    print(f"Backed up: {relative_path} to {backup_file}")
 
                     # Add file information to the backup_info list
                     backup_info.append((source_file, backup_file, file_hash))
 
-    
     # Create and save the backup database text file
     database_file = os.path.join(backup_base_dir, f"backup_database_{current_date}.txt")
     with open(database_file, 'w') as db:
@@ -87,4 +82,5 @@ def incremental_backup(source_dirs, backup_base_dir):
     print(f"Backup database saved to: {database_file}")
 
 if __name__ == "__main__":
-    incremental_backup(source_dirs, backup_base_dir)
+    incremental_backup(source_dirs, backup_base_dir, excluded_dirs)
+

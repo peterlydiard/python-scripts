@@ -11,6 +11,9 @@ source_dirs = ['/home/peter/Pictures', '/home/peter/bash']
 # Destination directory
 backup_base_dir = '/home/peter/History'
 
+# List of directories to be excluded from backup
+excluded_dirs = ['/home/peter/Pictures/Windows Spotlight Images']
+
 # Function to calculate the MD5 hash of a file
 def calculate_hash(file_path):
     hasher = hashlib.md5()
@@ -51,7 +54,11 @@ def incremental_backup(source_dirs, backup_base_dir):
     existing_hashes = build_existing_hash_list(backup_base_dir)
 
     for source_dir in source_dirs:
-        for root, _, files in os.walk(source_dir):
+        for root, dirs, files in os.walk(source_dir):
+                    
+            # Exclude directories and their subdirectories based on the excluded_dirs list
+            dirs[:] = [d for d in dirs if os.path.join(root, d) not in excluded_dirs]
+
             for file in files:
                 source_file = os.path.join(root, file)
                 relative_path = os.path.relpath(source_file, source_dir)

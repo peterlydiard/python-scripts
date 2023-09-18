@@ -88,6 +88,8 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
 
                 # Calculate the MD5 hash of the source file
                 file_hash = calculate_hash(source_file)
+                # Output a '.' as a progress indicator
+                print(".", end="", flush=True)  
 
                 if file_hash not in existing_hashes:
                     # Build the backup directory structure with source directories as subdirectories
@@ -110,7 +112,7 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
             db.write(f"Backup: {backup_file}\n")
             db.write(f"MD5 Hash: {file_hash}\n\n")
 
-    print(f"Backup database saved to: {database_file}")
+    print(f"\nBackup database saved to: {database_file}")
 
     # Log the date and number of files included in the backup
     num_files_in_backup = len(backup_info)

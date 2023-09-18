@@ -119,4 +119,11 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
     logging.info(f"Backup Date/Time: {current_datetime}, Number of Files: {num_files_in_backup}")
 
 if __name__ == "__main__":
+    start_time = datetime.datetime.now()
+
     incremental_backup(source_dirs, backup_base_dir, excluded_dirs)
+
+    end_time = datetime.datetime.now()
+    run_time = (end_time - start_time).total_seconds()
+
+    print(f"\nBackup completed in {run_time:.2f} seconds.")

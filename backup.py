@@ -9,9 +9,11 @@ from backup_config import source_dirs, backup_base_dir, excluded_dirs  # Import 
 log_file = os.path.join(backup_base_dir, 'backup_log.txt')
 logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-# Function to calculate the MD5 hash of a file
+# Function to calculate the MD5 hash of a file including its path
 def calculate_hash(file_path):
     hasher = hashlib.md5()
+    # Include the file path in the hash
+    hasher.update(file_path.encode('utf-8'))  
     with open(file_path, 'rb') as f:
         while True:
             data = f.read(4096)
@@ -30,8 +32,8 @@ def build_existing_hash_list(backup_base_dir):
                 with open(database_file, 'r') as db:
                     lines = db.readlines()
                     for i in range(2, len(lines), 4):
-                        file_key = lines[i - 2].strip()[8:]  # Extract the file key from the source line
-                        existing_hashes.add(file_key)
+                        md5_hash = lines[i].strip().split(": ")[1]
+                        existing_hashes.add(md5_hash)
     return existing_hashes
 
 # Function to check if a directory path exists and has necessary permissions
@@ -66,14 +68,14 @@ if not check_directory(backup_base_dir, write=True):
 
 # Function to perform an incremental backup
 def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
-    # Get the current date as a string (e.g., "2023-09-15")
-    current_date = datetime.date.today().strftime("%Y-%m-%d")
+    # Get the current date and time as a string with second-level resolution (e.g., "2023-09-15_12-34-56")
+    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Create a list to store information about backed up files
     backup_info = []
 
-    # Build a set of existing file keys
-    existing_file_keys = build_existing_hash_list(backup_base_dir)
+    # Build a set of existing MD5 hashes
+    existing_hashes = build_existing_hash_list(backup_base_dir)
 
     for source_dir in source_dirs:
         for root, dirs, files in os.walk(source_dir):
@@ -87,13 +89,10 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
                 # Calculate the MD5 hash of the source file
                 file_hash = calculate_hash(source_file)
 
-                # Construct a unique key for each file based on source path, relative path, and hash
-                file_key = f"{source_dir}|{relative_path}|{file_hash}"
-
-                if file_key not in existing_file_keys:
+                if file_hash not in existing_hashes:
                     # Build the backup directory structure with source directories as subdirectories
                     source_dir_name = os.path.basename(source_dir)
-                    backup_dir = os.path.join(backup_base_dir, current_date, source_dir_name)
+                    backup_dir = os.path.join(backup_base_dir, current_datetime, source_dir_name)
                     backup_file = os.path.join(backup_dir, relative_path)
 
                     os.makedirs(os.path.dirname(backup_file), exist_ok=True)
@@ -101,21 +100,21 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
                     print(f"Backed up: {relative_path} to {backup_file}")
 
                     # Add file information to the backup_info list
-                    backup_info.append((source_file, backup_file, file_key))
+                    backup_info.append((source_file, backup_file, file_hash))
 
     # Create and save the backup database text file
-    database_file = os.path.join(backup_base_dir, f"backup_database_{current_date}.txt")
+    database_file = os.path.join(backup_base_dir, f"backup_database_{current_datetime}.txt")
     with open(database_file, 'w') as db:
-        for source_file, backup_file, file_key in backup_info:
+        for source_file, backup_file, file_hash in backup_info:
             db.write(f"Source: {source_file}\n")
             db.write(f"Backup: {backup_file}\n")
-            db.write(f"File Key: {file_key}\n\n")
+            db.write(f"MD5 Hash: {file_hash}\n\n")
 
     print(f"Backup database saved to: {database_file}")
 
     # Log the date and number of files included in the backup
     num_files_in_backup = len(backup_info)
-    logging.info(f"Backup Date: {current_date}, Number of Files: {num_files_in_backup}")
+    logging.info(f"Backup Date/Time: {current_datetime}, Number of Files: {num_files_in_backup}")
 
 if __name__ == "__main__":
     incremental_backup(source_dirs, backup_base_dir, excluded_dirs)

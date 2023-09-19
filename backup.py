@@ -3,7 +3,11 @@ import shutil
 import hashlib
 import datetime
 import logging
-from backup_config import source_dirs, backup_base_dir, excluded_dirs  # Import the configuration
+# Import the configuration
+if str(os.name) == 'nt':
+    from backup_config_windows import source_dirs, backup_base_dir, excluded_dirs
+else:
+    from backup_config import source_dirs, backup_base_dir, excluded_dirs
 
 # Configure the logging
 log_file = os.path.join(backup_base_dir, 'backup_log.txt')

@@ -18,6 +18,7 @@ Text(table_box, text="Backup 2", grid=[2, 0])
 # Function to list the latest backed up copies of files
 def list_latest_backups(backup_base_dir):
     backup_info = {}  # Dictionary to store file information
+    backup_times = []  # List to store unique dates and times of backups
 
     # Iterate through backup directories
     for root, dirs, files in os.walk(backup_base_dir):
@@ -26,6 +27,13 @@ def list_latest_backups(backup_base_dir):
                 database_file = os.path.join(root, file)
                 with open(database_file, 'r') as db:
                     lines = db.readlines()
+
+                    # Extract date and time information from the backup database file name
+                    date_time = os.path.splitext(file)[0].split("database_")[1]  # Assuming the format is yyyy-mm-dd_hh-mm-ss
+                    # Add the unique date and time to the list
+                    if date_time not in backup_times:
+                        backup_times.append(date_time)
+
                     i = 0
                     while i < len(lines):
                         # Check if the line starts with "Source: " and has at least 10 characters
@@ -71,7 +79,7 @@ def list_latest_backups(backup_base_dir):
 
                         i += 1
 
-    return backup_info
+    return backup_info, backup_times
 
 # Function to calculate the MD5 hash of a file using the source file path
 def calculate_hash(source_file_path, backup_file_path):
@@ -109,16 +117,33 @@ def print_and_save_backup_info(backup_info, output_file):
         print()
 
 # Function to display the backup table
-def display_backup_table(backup_info):
+def display_backup_table(backup_info, backup_times):
     row = 1  # Start from the second row
+
+    # Generate reformatted column headings
+    col_headings = ["Source File"]
+    for time_str in backup_times:
+        # Reformat the date and time (e.g., "2023-09-18_09-44-37" to "2023-09-18\n09:44:37")
+        formatted_time = time_str.replace("_", "\n").replace("-", ":")
+        col_headings.append(formatted_time)
+
+    # Display column headings
+    for col, heading in enumerate(col_headings):
+        # Left-justify the text in the first column
+        justify = "left" if col == 0 else "right"
+        Text(table_box, text=heading, grid=[col, 0], align=justify)
+
     for source_file, info in backup_info.items():
         if row > 10:
             break  # Display only the first 10 files
-        Text(table_box, text=info['source_location'], grid=[0, row])
+        # Left-justify the text in the first column
+        Text(table_box, text=info['source_location'], grid=[0, row], align="left")
+        
         # Add "1" to indicate backup presence based on info['hash_match'] for each backup
-        Text(table_box, text="1" if info['hash_match'] else "", grid=[1, row])
-        Text(table_box, text="1" if info['hash_match'] else "", grid=[2, row])
-        # Add more columns for additional backups as needed
+        # for col, time_str in enumerate(backup_times, start=1):
+        #    if info['backup_file'] in backup_times[time_str]:
+        #        Text(table_box, text="1" if info['hash_match'] else "", grid=[col, row], align="right")
+
         row += 1
 
 if __name__ == "__main__":
@@ -135,7 +160,7 @@ if __name__ == "__main__":
     if os.path.exists(output_file):
         os.remove(output_file)
 
-    backup_info = list_latest_backups(backup_base_dir)
+    backup_info, backup_times = list_latest_backups(backup_base_dir)
 
     if not backup_info:
         print("No backup information found.")
@@ -143,7 +168,7 @@ if __name__ == "__main__":
         print_and_save_backup_info(backup_info, output_file)
 
     # Call the function to display the backup table
-    display_backup_table(backup_info)
+    display_backup_table(backup_info, backup_times)
 
     # Display the application
     app.display()

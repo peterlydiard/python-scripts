@@ -1,6 +1,19 @@
 import os
 import datetime
 import hashlib
+from guizero import App, Box, Text, PushButton
+
+# Create an application
+app = App("Backup Info Table", width=600, height=400)
+
+# Create a Box widget to hold the table-like structure
+table_box = Box(app, layout="grid")
+
+# Add table headers
+Text(table_box, text="Source File", grid=[0, 0])
+Text(table_box, text="Backup 1", grid=[1, 0])
+Text(table_box, text="Backup 2", grid=[2, 0])
+# Add more headers for additional backups as needed
 
 # Function to list the latest backed up copies of files
 def list_latest_backups(backup_base_dir):
@@ -95,6 +108,19 @@ def print_and_save_backup_info(backup_info, output_file):
         print(f"Hash Match: {info['hash_match']}")
         print()
 
+# Function to display the backup table
+def display_backup_table(backup_info):
+    row = 1  # Start from the second row
+    for source_file, info in backup_info.items():
+        if row > 10:
+            break  # Display only the first 10 files
+        Text(table_box, text=info['source_location'], grid=[0, row])
+        # Add "1" to indicate backup presence based on info['hash_match'] for each backup
+        Text(table_box, text="1" if info['hash_match'] else "", grid=[1, row])
+        Text(table_box, text="1" if info['hash_match'] else "", grid=[2, row])
+        # Add more columns for additional backups as needed
+        row += 1
+
 if __name__ == "__main__":
     try:
         from backup_config import backup_base_dir  # Import backup_base_dir from the configuration file
@@ -115,3 +141,9 @@ if __name__ == "__main__":
         print("No backup information found.")
     else:
         print_and_save_backup_info(backup_info, output_file)
+
+    # Call the function to display the backup table
+    display_backup_table(backup_info)
+
+    # Display the application
+    app.display()

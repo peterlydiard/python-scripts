@@ -1,5 +1,6 @@
 import os
 import datetime
+import hashlib
 
 # Function to list the latest backed up copies of files
 def list_latest_backups(backup_base_dir):
@@ -36,17 +37,41 @@ def list_latest_backups(backup_base_dir):
                                 except OSError:
                                     # Handle cases where file size cannot be determined
                                     file_size = 0
+                                    
+                                # Calculate the MD5 hash of the backup file using the source file path
+                                calculated_md5 = calculate_hash(source_location, backup_file)
+
+                                # Check if the calculated MD5 matches the saved MD5 from the database
+                                if 'MD5 Hash' in lines[i + 1]:
+                                    saved_md5 = lines[i + 1].strip().split(": ")[1]
+                                    hash_match = calculated_md5 == saved_md5
+                                else:
+                                    hash_match = False
 
                                 backup_info[backup_file] = {
                                     'source_location': source_location,
                                     'backup_file': backup_file,
                                     'mod_time': file_mod_time,
                                     'size': file_size,
+                                    'hash_match': hash_match
                                 }
 
                         i += 1
 
     return backup_info
+
+# Function to calculate the MD5 hash of a file using the source file path
+def calculate_hash(source_file_path, backup_file_path):
+    hasher = hashlib.md5()
+    # Include the file path in the hash
+    hasher.update(source_file_path.encode('utf-8'))  
+    with open(backup_file_path, 'rb') as f:
+        while True:
+            data = f.read(4096)
+            if not data:
+                break
+            hasher.update(data)
+    return hasher.hexdigest()
 
 # Function to print and save the backup information
 def print_and_save_backup_info(backup_info, output_file):
@@ -57,6 +82,7 @@ def print_and_save_backup_info(backup_info, output_file):
             f.write(f"Backup Location: {info['backup_file']}\n")
             f.write(f"Modified Time: {info['mod_time']}\n")
             f.write(f"Size: {info['size']} bytes\n")
+            f.write(f"Hash Match: {info['hash_match']}\n")
             f.write("\n")
 
     print("Latest Backups:")
@@ -66,6 +92,7 @@ def print_and_save_backup_info(backup_info, output_file):
         print(f"Backup Location: {info['backup_file']}")
         print(f"Modified Time: {info['mod_time']}")
         print(f"Size: {info['size']} bytes")
+        print(f"Hash Match: {info['hash_match']}")
         print()
 
 if __name__ == "__main__":

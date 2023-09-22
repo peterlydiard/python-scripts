@@ -73,7 +73,7 @@ if not check_directory(backup_base_dir, write=True):
 # Function to perform an incremental backup
 def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
     # Get the current date and time as a string with second-level resolution (e.g., "2023-09-15_12-34-56")
-    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 
     # Create a list to store information about backed up files
     backup_info = []

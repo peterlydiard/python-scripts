@@ -9,12 +9,6 @@ app = App("Backup Info Table", width=600, height=400)
 # Create a Box widget to hold the table-like structure
 table_box = Box(app, layout="grid")
 
-# Add table headers
-Text(table_box, text="Source File", grid=[0, 0])
-Text(table_box, text="Backup 1", grid=[1, 0])
-Text(table_box, text="Backup 2", grid=[2, 0])
-# Add more headers for additional backups as needed
-
 # Function to list the latest backed up copies of files
 def list_latest_backups(backup_base_dir):
     backup_info = {}  # Dictionary to store file information
@@ -124,7 +118,7 @@ def display_backup_table(backup_info, backup_times):
     col_headings = ["Source File"]
     for time_str in backup_times:
         # Reformat the date and time (e.g., "2023-09-18_09-44-37" to "2023-09-18\n09:44:37")
-        formatted_time = time_str.replace("_", "\n").replace("-", ":")
+        formatted_time = time_str.replace("_", "\n")
         col_headings.append(formatted_time)
 
     # Display column headings

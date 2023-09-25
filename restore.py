@@ -43,7 +43,7 @@ def list_latest_backups(backup_base_dir):
                             if lines[i].startswith("Backup: ") and len(lines[i]) >= 10:
                                 backup_file = lines[i].strip().split(": ")[1]
 
-                                # Get the actual modification time of the file
+                                # Get the actual modification time of the backup file
                                 file_mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(backup_file))
 
                                 # Get the file size from the file attributes
@@ -117,7 +117,7 @@ def display_backup_table(backup_info, backup_times):
     # Generate reformatted column headings
     col_headings = ["Source File"]
     for time_str in backup_times:
-        # Reformat the date and time (e.g., "2023-09-18_09-44-37" to "2023-09-18\n09:44:37")
+        # Stack the date and time (e.g., "2023-09-18_09h44m37s" to "2023-09-18\n09h44m37s")
         formatted_time = time_str.replace("_", "\n")
         col_headings.append(formatted_time)
 
@@ -127,16 +127,18 @@ def display_backup_table(backup_info, backup_times):
         justify = "left" if col == 0 else "right"
         Text(table_box, text=heading, grid=[col, 0], align=justify)
 
-    for source_file, info in backup_info.items():
+    for _, info in backup_info.items():
         if row > 10:
             break  # Display only the first 10 files
         # Left-justify the text in the first column
         Text(table_box, text=info['source_location'], grid=[0, row], align="left")
         
         # Add "1" to indicate backup presence based on info['hash_match'] for each backup
-        # for col, time_str in enumerate(backup_times, start=1):
-        #    if info['backup_file'] in backup_times[time_str]:
-        #        Text(table_box, text="1" if info['hash_match'] else "", grid=[col, row], align="right")
+        for col, time_str in enumerate(backup_times, start=1):
+            backup_file = info['backup_file']
+            if time_str in backup_file:
+                Text(table_box, text="1" if info['hash_match'] else "?", grid=[col, row], align="right")
+                break # We found the table column for this file.
 
         row += 1
 

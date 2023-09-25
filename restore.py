@@ -114,39 +114,53 @@ def print_and_save_backup_info(backup_info, output_file):
             print(f"Hash Match: {backup['hash_match']}")
         print()
 
-# Function to display the backup table
-def display_backup_table(backup_info, backup_times):
-    row = 1  # Start from the second row
+# Function to make the backup table - one row per source file
+def make_backup_table(backup_info, backup_times):
+    table = [] # List for function output
 
     # Generate reformatted column headings
-    col_headings = ["Source File"]
+    row_data = ["Source File"]
     for time_str in backup_times:
         # Stack the date and time (e.g., "2023-09-18_09h44m37s" to "2023-09-18\n09h44m37s")
         formatted_time = time_str.replace("_", "\n")
-        col_headings.append(formatted_time)
-
-    # Display column headings
-    for col, heading in enumerate(col_headings):
-        # Left-justify the text in the first column
-        justify = "left" if col == 0 else "right"
-        Text(table_box, text=heading, grid=[col, 0], align=justify)
+        row_data.append(formatted_time)
+    table.append(row_data)
 
     # Generate the table rows, with one source file per row
     for source_location, backups in backup_info.items():
-        # Left-justify the text in the first column
-        Text(table_box, text=source_location, grid=[0, row], align="left")
+        row_data = [source_location]
         
         for _, backup in enumerate(backups): # Get info on backup file  
             backup_file = backup['backup_file']
             # Add "1" to indicate backup presence based on info['hash_match'] for each backup
-            for col, time_str in enumerate(backup_times, start=1):
+            for _, time_str in enumerate(backup_times, start=1):
                 if time_str in backup_file:
-                    Text(table_box, text="1" if backup['hash_match'] else "?", grid=[col, row], align="right")
-                    break # We found the table column for this file.
+                    cell_data = "1" if backup['hash_match'] else "?" # backup file found
+                else:
+                    cell_data = ""  # No backup file for this date & time
+                row_data.append(cell_data)
 
-        row += 1
-        # if row > 10:
-        #    break  # Display only the first 10 files
+        table.append(row_data)
+
+    return table
+
+# Function to display the backup table
+def display_backup_table(backup_table):
+    if backup_table == []:
+        return # nothing to display
+
+    num_rows = len(backup_table)
+    num_cols = len(backup_table[0])
+
+    for row in num_rows:
+        if row > 10:
+            break # Display only the first 10 files
+        for col in num_cols:
+            # Left-justify the text in the first column
+            justify = "left" if col == 0 else "right"
+            text = backup_table[col][row]
+            Text(table_box, text, grid=[col, row+1], align=justify)
+
 
 if __name__ == "__main__":
     try:
@@ -169,8 +183,10 @@ if __name__ == "__main__":
     else:
         print_and_save_backup_info(backup_info, output_file)
 
-    # Call the function to display the backup table
-    display_backup_table(backup_info, backup_times)
+    # Call the functions to make and display the backup table
+    table = make_backup_table(backup_info, backup_times)
 
-    # Display the application
+    display_backup_table(table)
+
+    # Display the guizero application
     app.display()

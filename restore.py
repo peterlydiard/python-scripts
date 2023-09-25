@@ -63,13 +63,17 @@ def list_latest_backups(backup_base_dir):
                                 else:
                                     hash_match = False
 
-                                backup_info[backup_file] = {
-                                    'source_location': source_location,
+                                # Check if the source_location is already a key in backup_info
+                                if source_location not in backup_info:
+                                    backup_info[source_location] = []
+
+                                # Append the backup file information to the list associated with source_location
+                                backup_info[source_location].append({
                                     'backup_file': backup_file,
                                     'mod_time': file_mod_time,
                                     'size': file_size,
                                     'hash_match': hash_match
-                                }
+                                })
 
                         i += 1
 
@@ -91,23 +95,23 @@ def calculate_hash(source_file_path, backup_file_path):
 # Function to print and save the backup information
 def print_and_save_backup_info(backup_info, output_file):
     with open(output_file, 'w') as f:
-        for file, info in backup_info.items():
-            f.write(f"File: {file}\n")
-            f.write(f"Source Location: {info['source_location']}\n")  # Source location first
-            f.write(f"Backup Location: {info['backup_file']}\n")
-            f.write(f"Modified Time: {info['mod_time']}\n")
-            f.write(f"Size: {info['size']} bytes\n")
-            f.write(f"Hash Match: {info['hash_match']}\n")
+        for source_location, backups in backup_info.items():
+            f.write(f"Source Location: {source_location}\n")
+            for i, backup in enumerate(backups):
+                f.write(f"Backup {i + 1} Location: {backup['backup_file']}\n")
+                f.write(f"Modified Time: {backup['mod_time']}\n")
+                f.write(f"Size: {backup['size']} bytes\n")
+                f.write(f"Hash Match: {backup['hash_match']}\n")
             f.write("\n")
 
     print("Latest Backups:")
-    for file, info in backup_info.items():
-        print(f"File: {file}")
-        print(f"Source Location: {info['source_location']}")  # Source location first
-        print(f"Backup Location: {info['backup_file']}")
-        print(f"Modified Time: {info['mod_time']}")
-        print(f"Size: {info['size']} bytes")
-        print(f"Hash Match: {info['hash_match']}")
+    for source_location, backups in backup_info.items():
+        print(f"Source Location: {source_location}")
+        for i, backup in enumerate(backups):
+            print(f"Backup {i + 1} Location: {backup['backup_file']}")
+            print(f"Modified Time: {backup['mod_time']}")
+            print(f"Size: {backup['size']} bytes")
+            print(f"Hash Match: {backup['hash_match']}")
         print()
 
 # Function to display the backup table
@@ -127,20 +131,22 @@ def display_backup_table(backup_info, backup_times):
         justify = "left" if col == 0 else "right"
         Text(table_box, text=heading, grid=[col, 0], align=justify)
 
-    for _, info in backup_info.items():
-        if row > 10:
-            break  # Display only the first 10 files
+    # Generate the table rows, with one source file per row
+    for source_location, backups in backup_info.items():
         # Left-justify the text in the first column
-        Text(table_box, text=info['source_location'], grid=[0, row], align="left")
+        Text(table_box, text=source_location, grid=[0, row], align="left")
         
-        # Add "1" to indicate backup presence based on info['hash_match'] for each backup
-        for col, time_str in enumerate(backup_times, start=1):
-            backup_file = info['backup_file']
-            if time_str in backup_file:
-                Text(table_box, text="1" if info['hash_match'] else "?", grid=[col, row], align="right")
-                break # We found the table column for this file.
+        for _, backup in enumerate(backups): # Get info on backup file  
+            backup_file = backup['backup_file']
+            # Add "1" to indicate backup presence based on info['hash_match'] for each backup
+            for col, time_str in enumerate(backup_times, start=1):
+                if time_str in backup_file:
+                    Text(table_box, text="1" if backup['hash_match'] else "?", grid=[col, row], align="right")
+                    break # We found the table column for this file.
 
         row += 1
+        # if row > 10:
+        #    break  # Display only the first 10 files
 
 if __name__ == "__main__":
     try:

@@ -129,16 +129,15 @@ def make_backup_table(backup_info, backup_times):
     # Generate the table rows, with one source file per row
     for source_location, backups in backup_info.items():
         row_data = [source_location]
-        
-        for _, backup in enumerate(backups): # Get info on backup file  
-            backup_file = backup['backup_file']
-            # Add "1" to indicate backup presence based on info['hash_match'] for each backup
-            for _, time_str in enumerate(backup_times, start=1):
+        # Iterate through the table columns
+        for _, time_str in enumerate(backup_times, start=1):
+            cell_data = ""
+            for _, backup in enumerate(backups): # Get info on each backup file
+                backup_file = backup['backup_file']
                 if time_str in backup_file:
                     cell_data = "1" if backup['hash_match'] else "?" # backup file found
-                else:
-                    cell_data = ""  # No backup file for this date & time
-                row_data.append(cell_data)
+                    break
+            row_data.append(cell_data)
 
         table.append(row_data)
 
@@ -151,15 +150,19 @@ def display_backup_table(backup_table):
 
     num_rows = len(backup_table)
     num_cols = len(backup_table[0])
+    row = 0
 
-    for row in num_rows:
+    while row < num_rows:
         if row > 10:
             break # Display only the first 10 files
-        for col in num_cols:
+        col = 0
+        while col < num_cols:
             # Left-justify the text in the first column
             justify = "left" if col == 0 else "right"
-            text = backup_table[col][row]
+            text = backup_table[row][col]
             Text(table_box, text, grid=[col, row+1], align=justify)
+            col += 1
+        row += 1
 
 
 if __name__ == "__main__":

@@ -109,6 +109,16 @@ def print_and_save_backup_info(backup_info, output_file):
         print()
 
 
+def generate_restore_script(backup_info, script_file_path):
+    with open(script_file_path, 'w') as script_file:
+        script_file.write('#!/bin/bash\n\n')
+        for source_location, backups in backup_info.items():
+            latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
+            backup_file = latest_backup['backup_file']
+            script_file.write(f'cp "{backup_file}" "{source_location}"\n')
+    print("Restore script 'restore_backup.sh' generated successfully.")
+
+
 if __name__ == "__main__":
     try:
         from backup_config import backup_base_dir  # Import backup_base_dir from the configuration file
@@ -130,9 +140,13 @@ if __name__ == "__main__":
     else:
         print_and_save_backup_info(backup_info, output_file)
 
-    create_window()
+    # Specify the full path to the script within the backup base directory
+    script_file_path = os.path.join(backup_base_dir, "restore_backup.sh")
+    generate_restore_script(backup_info, script_file_path)
+
+    # create_window()
 
     # Call the functions to make and display the backup table
-    table = make_backup_table(backup_info, backup_times)
+    # table = make_backup_table(backup_info, backup_times)
 
-    display_backup_table(table)
+    # display_backup_table(table)

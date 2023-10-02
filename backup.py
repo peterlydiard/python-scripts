@@ -3,42 +3,12 @@ import shutil
 import hashlib
 import datetime
 import logging
+from restore import list_all_backups
 # Import the configuration
 if str(os.name) == 'nt':
     from backup_config_windows import source_dirs, backup_base_dir, excluded_dirs
 else:
     from backup_config import source_dirs, backup_base_dir, excluded_dirs
-
-# Configure the logging
-log_file = os.path.join(backup_base_dir, 'backup_log.txt')
-logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-# Function to calculate the MD5 hash of a file including its path
-def calculate_hash(file_path):
-    hasher = hashlib.md5()
-    # Include the file path in the hash
-    hasher.update(file_path.encode('utf-8'))  
-    with open(file_path, 'rb') as f:
-        while True:
-            data = f.read(4096)
-            if not data:
-                break
-            hasher.update(data)
-    return hasher.hexdigest()
-
-# Function to build a list of MD5 hashes from existing backup database files
-def build_existing_hash_list(backup_base_dir):
-    existing_hashes = set()  # Use a set for efficient lookup
-    for root, _, files in os.walk(backup_base_dir):
-        for file in files:
-            if file.startswith("backup_database_") and file.endswith(".txt"):
-                database_file = os.path.join(root, file)
-                with open(database_file, 'r') as db:
-                    lines = db.readlines()
-                    for i in range(2, len(lines), 4):
-                        md5_hash = lines[i].strip().split(": ")[1]
-                        existing_hashes.add(md5_hash)
-    return existing_hashes
 
 # Function to check if a directory path exists and has necessary permissions
 def check_directory(path, write=False):
@@ -70,16 +40,49 @@ if not check_directory(backup_base_dir, write=True):
     logging.error("Error: Backup base directory path or write permissions are invalid.")
     exit(1)
 
+# Configure the logging
+log_file = os.path.join(backup_base_dir, 'backup_log.txt')
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+# Function to calculate the MD5 hash of a file including its path
+def calculate_hash(file_path):
+    hasher = hashlib.md5()
+    # Include the file path in the hash
+    hasher.update(file_path.encode('utf-8'))  
+    with open(file_path, 'rb') as f:
+        while True:
+            data = f.read(4096)
+            if not data:
+                break
+            hasher.update(data)
+    return hasher.hexdigest()
+
+# Function to build a list of MD5 hashes from existing backup database files
+def list_latest_hashes(backup_info):
+    latest_hashes = set()  # Set to store hashes of the latest backup copy of each source file
+
+    for source_location, backups in backup_info.items():
+        if backups:
+            latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
+            md5_hash = latest_backup['md5_hash']
+            # Add the hash to the set
+            latest_hashes.add(latest_backup['md5_hash'])
+
+    return latest_hashes
+
 # Function to perform an incremental backup
 def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
     # Get the current date and time as a string with second-level resolution (e.g., "2023-09-15_12-34-56")
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 
-    # Create a list to store information about backed up files
-    backup_info = []
+    # Get info on previous backups
+    old_backup_info, _ = list_all_backups(backup_base_dir)
 
     # Build a set of existing MD5 hashes
-    existing_hashes = build_existing_hash_list(backup_base_dir)
+    latest_hashes = list_latest_hashes(old_backup_info)
+
+    # Create a list to store information about backed up files
+    backup_info = []
 
     for source_dir in source_dirs:
         for root, dirs, files in os.walk(source_dir):
@@ -95,7 +98,7 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
                 # Output a '.' as a progress indicator
                 print(".", end="", flush=True)  
 
-                if file_hash not in existing_hashes:
+                if file_hash not in latest_hashes:
                     # Build the backup directory structure with source directories as subdirectories
                     source_dir_name = os.path.basename(source_dir)
                     backup_dir = os.path.join(backup_base_dir, current_datetime, source_dir_name)

@@ -3,8 +3,8 @@ import datetime
 import hashlib
 from restore_gui import create_window, make_backup_table, display_backup_table
 
-# Function to list the latest backed up copies of files
-def list_latest_backups(backup_base_dir):
+# Function to list all the backed up copies of files
+def list_all_backups(backup_base_dir):
     backup_info = {}  # Dictionary to store file information
     backup_times = []  # List to store unique dates and times of backups
 
@@ -66,6 +66,7 @@ def list_latest_backups(backup_base_dir):
                                     'backup_file': backup_file,
                                     'mod_time': file_mod_time,
                                     'size': file_size,
+                                    'md5_hash': calculated_md5,
                                     'hash_match': hash_match
                                 })
 
@@ -95,16 +96,18 @@ def print_and_save_backup_info(backup_info, output_file):
                 f.write(f"Backup {i + 1} Location: {backup['backup_file']}\n")
                 f.write(f"Modified Time: {backup['mod_time']}\n")
                 f.write(f"Size: {backup['size']} bytes\n")
+                f.write(f"MD5 Hash: {backup['md5_hash']}\n")
                 f.write(f"Hash Match: {backup['hash_match']}\n")
             f.write("\n")
 
-    print("Latest Backups:")
+    print("All Backups:")
     for source_location, backups in backup_info.items():
         print(f"Source Location: {source_location}")
         for i, backup in enumerate(backups):
             print(f"Backup {i + 1} Location: {backup['backup_file']}")
             print(f"Modified Time: {backup['mod_time']}")
             print(f"Size: {backup['size']} bytes")
+            print(f"MD5 Hash: {backup['md5_hash']}\n")
             print(f"Hash Match: {backup['hash_match']}")
         print()
 
@@ -133,7 +136,7 @@ if __name__ == "__main__":
     if os.path.exists(output_file):
         os.remove(output_file)
 
-    backup_info, backup_times = list_latest_backups(backup_base_dir)
+    backup_info, backup_times = list_all_backups(backup_base_dir)
 
     if not backup_info:
         print("No backup information found.")

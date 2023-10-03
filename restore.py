@@ -1,7 +1,7 @@
 import os
 
 from backup import list_all_backups
-from restore_gui import create_window, make_backup_table, display_backup_table
+# from restore_gui import create_window, make_backup_table, display_backup_table
 
 
 # Function to print and save the backup information
@@ -53,7 +53,8 @@ if __name__ == "__main__":
     if os.path.exists(output_file):
         os.remove(output_file)
 
-    backup_info, backup_times = list_all_backups(backup_base_dir)
+    # Get backup info and check file hashes
+    backup_info, backup_times = list_all_backups(backup_base_dir, True)
 
     if not backup_info:
         print("No backup information found.")

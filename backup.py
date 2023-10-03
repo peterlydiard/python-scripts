@@ -87,7 +87,7 @@ def common_parent_directory(path1, path2):
 
 
 # Function to list all the backed up copies of files
-def list_all_backups(backup_base_dir):
+def list_all_backups(backup_base_dir, check_hash):
     backup_info = {}  # Dictionary to store file information
     backup_times = []  # List to store unique dates and times of backups
 
@@ -131,7 +131,10 @@ def list_all_backups(backup_base_dir):
                                     file_size = 0
                                     
                                 # Calculate the MD5 hash of the backup file using the source file path
-                                calculated_md5 = calculate_backup_hash(source_location, backup_file)
+                                if check_hash:
+                                    calculated_md5 = calculate_backup_hash(source_location, backup_file)
+                                else:
+                                    calculated_md5 = 0
 
                                 # Check if the calculated MD5 matches the saved MD5 from the database
                                 if 'MD5 Hash' in lines[i + 1]:
@@ -149,7 +152,7 @@ def list_all_backups(backup_base_dir):
                                     'backup_file': backup_file,
                                     'mod_time': file_mod_time,
                                     'size': file_size,
-                                    'md5_hash': calculated_md5,
+                                    'md5_hash': saved_md5,
                                     'hash_match': hash_match
                                 })
 
@@ -201,8 +204,8 @@ def incremental_backup(source_dirs, backup_base_dir, excluded_dirs):
     # Get the current date and time as a string with second-level resolution (e.g., "2023-09-15_12-34-56")
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 
-    # Get info on previous backups
-    old_backup_info, _ = list_all_backups(backup_base_dir)
+    # Get info on previous backups without checking file hashes
+    old_backup_info, _ = list_all_backups(backup_base_dir, False)
 
     # Build a set of existing MD5 hashes
     latest_hashes = list_latest_hashes(old_backup_info)

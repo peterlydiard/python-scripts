@@ -1,6 +1,7 @@
 # List of source directories to be backed up
+# These are required for the program to run correctly.
 source_dirs = ['/home/peter/Pictures']
-backup_base_dir = '/home/peter/History'
+backup_base_dir = '/home/peter/File History'
 
 # List of directories to be excluded from backup
-excluded_dirs = ['/home/peter/Pictures/Editing', '/home/peter/Pictures/Saved pictures']
+excluded_dirs = ['/home/peter/Pictures/Editing']

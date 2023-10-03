@@ -2,6 +2,5 @@
 Python utilities - compatible with Python 3.5 and above.
 
 Notes:
-1. File paths in backup databases don't fully reflect the source paths so 
-could cause clashes if different source folders have sub-folders with
-the same name.
+1. MD5 sum of backed-up files is recalculated on every backup. Looks
+like overkill. This could wait until the restore script is built.

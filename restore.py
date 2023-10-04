@@ -1,8 +1,40 @@
 import os
+import logging
 
 from backup import list_all_backups
 # from restore_gui import create_window, make_backup_table, display_backup_table
 
+# Import the configuration
+if str(os.name) == 'nt':
+    from backup_config_windows import backup_base_dir
+else:
+    from backup_config import backup_base_dir
+
+# Function to check if a directory path exists and has necessary permissions
+def check_directory(path, write=False):
+    if not os.path.exists(path):
+        error_msg = f"Error: Directory does not exist: {path}"
+        print(error_msg)
+        logging.error(error_msg)
+        return False
+    if not os.access(path, os.R_OK):
+        error_msg = f"Error: Insufficient permissions to read directory: {path}"
+        print(error_msg)
+        logging.error(error_msg)
+        return False
+    if write and not os.access(path, os.W_OK):
+        error_msg = f"Error: Insufficient permissions to write to directory: {path}"
+        print(error_msg)
+        logging.error(error_msg)
+        return False
+    return True
+
+# Check if backup directory exists and has necessary permissions
+
+if not check_directory(backup_base_dir, write=True):
+    print("Please check backup base directory path and write permissions.")
+    logging.error("Error: Backup base directory path or write permissions are invalid.")
+    exit(1)
 
 # Function to print and save the backup information
 def print_and_save_backup_info(backup_info, output_file):
@@ -39,12 +71,23 @@ def generate_restore_script(backup_info, script_file_path):
     print("Restore script 'restore_backup.sh' generated successfully.")
 
 
+def generate_windows_restore_script(backup_info, batch_file_path):
+    with open(batch_file_path, 'w') as batch_file:
+        batch_file.write('REM Backup restore script\n\n') 
+        batch_file.write('@echo off\n')
+        for source_location, backups in backup_info.items():
+            latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
+            backup_file = latest_backup['backup_file']
+            source_dir = os.path.dirname(source_location)
+            batch_file.write(f'if not exist "{source_dir}" mkdir "{source_dir}"\n')
+            batch_file.write(f'copy "{backup_file}" "{source_location}"\n')
+            batch_file.write(f'if errorlevel 2 (\n')
+            batch_file.write(f'    echo Skipped restoring {source_location}\n)\n')
+
+    print("Restore script 'restore_backup.bat' generated successfully.")
+
+
 if __name__ == "__main__":
-    try:
-        from backup_config import backup_base_dir  # Import backup_base_dir from the configuration file
-    except ImportError:
-        print("Error: Unable to import backup_base_dir from backup_config.py.")
-        exit(1)
 
     # Specify the full path to the output file within the backup base directory
     output_file = os.path.join(backup_base_dir, "backup_info.txt")
@@ -62,12 +105,9 @@ if __name__ == "__main__":
         print_and_save_backup_info(backup_info, output_file)
 
     # Specify the full path to the script within the backup base directory
-    script_file_path = os.path.join(backup_base_dir, "restore_backup.sh")
-    generate_restore_script(backup_info, script_file_path)
-
-    # create_window()
-
-    # Call the functions to make and display the backup table
-    # table = make_backup_table(backup_info, backup_times)
-
-    # display_backup_table(table)
+    if str(os.name) == 'nt':
+        script_file_path = os.path.join(backup_base_dir, "restore_backup.bat")
+        generate_windows_restore_script(backup_info, script_file_path)
+    else:
+        script_file_path = os.path.join(backup_base_dir, "restore_backup.sh")
+        generate_restore_script(backup_info, script_file_path)

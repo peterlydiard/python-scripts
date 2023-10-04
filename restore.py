@@ -64,10 +64,20 @@ def print_and_save_backup_info(backup_info, output_file):
 def generate_restore_script(backup_info, script_file_path):
     with open(script_file_path, 'w') as script_file:
         script_file.write('#!/bin/bash\n\n')
+        script_file.write('echo "Are you sure you want to restore files from backup? (Y/N)"\n')
+        script_file.write('read choice\n')
+        script_file.write('if [[ ! "$choice" =~ ^[Yy]$ ]]; then\n')
+        script_file.write('    echo "Operation aborted."\n')
+        script_file.write('    exit 1\n')
+        script_file.write('fi\n')
         for source_location, backups in backup_info.items():
             latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
             backup_file = latest_backup['backup_file']
-            script_file.write(f'cp "{backup_file}" "{source_location}"\n')
+            script_file.write(f'cp "{backup_file}" "{source_location}')
+            script_file.write('|| {\n')
+            script_file.write('    exit_code=$?\n')
+            script_file.write(f'    echo "{source_location} restore failed with exit code: $exit_code"\n')
+            script_file.write('}\n')
     print("Restore script 'restore_backup.sh' generated successfully.")
 
 
@@ -75,15 +85,22 @@ def generate_windows_restore_script(backup_info, batch_file_path):
     with open(batch_file_path, 'w') as batch_file:
         batch_file.write('REM Backup restore script\n\n') 
         batch_file.write('@echo off\n')
+        batch_file.write('setlocal enabledelayedexpansion\n')
+        batch_file.write('echo Are you sure you want to restore files from backup? (Y/N)\n')
+        batch_file.write('set /p choice=\n')
+        batch_file.write('if /i not "%choice%"=="Y" (\n')
+        batch_file.write('    echo Operation aborted.\n')
+        batch_file.write('    exit /b 1\n)\n')
         for source_location, backups in backup_info.items():
             latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
             backup_file = latest_backup['backup_file']
             source_dir = os.path.dirname(source_location)
             batch_file.write(f'if not exist "{source_dir}" mkdir "{source_dir}"\n')
             batch_file.write(f'copy "{backup_file}" "{source_location}"\n')
-            batch_file.write(f'if errorlevel 2 (\n')
-            batch_file.write(f'    echo Skipped restoring {source_location}\n)\n')
-
+            batch_file.write(f'if errorlevel 1 (\n')
+            batch_file.write(f'    echo Restoring {source_location} failed with exit code: %errorlevel%\n)\n')
+        batch_file.write('echo Files restored from backup.\n')
+        batch_file.write('timeout /T 15\n')
     print("Restore script 'restore_backup.bat' generated successfully.")
 
 

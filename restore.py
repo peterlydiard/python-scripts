@@ -6,9 +6,9 @@ from backup import list_all_backups
 
 # Import the configuration
 if str(os.name) == 'nt':
-    from backup_config_windows import backup_base_dir
+    from backup_config_windows import backup_base_dir, home_dir, restore_dir 
 else:
-    from backup_config import backup_base_dir
+    from backup_config import backup_base_dir, home_dir, restore_dir
 
 # Function to check if a directory path exists and has necessary permissions
 def check_directory(path, write=False):
@@ -61,10 +61,11 @@ def print_and_save_backup_info(backup_info, output_file):
         print()
 
 
-def generate_restore_script(backup_info, script_file_path):
+def generate_restore_script(backup_info, script_file_path, home_dir, restore_dir):
     with open(script_file_path, 'w') as script_file:
         script_file.write('#!/bin/bash\n\n')
-        script_file.write('echo "Are you sure you want to restore files from backup? (Y/N)"\n')
+        script_file.write('# Backup restore script\n\n') 
+        script_file.write(f'echo "Are you sure you want to restore files into {restore_dir}? (Y/N)"\n')
         script_file.write('read choice\n')
         script_file.write('if [[ ! "$choice" =~ ^[Yy]$ ]]; then\n')
         script_file.write('    echo "Operation aborted."\n')
@@ -75,24 +76,31 @@ def generate_restore_script(backup_info, script_file_path):
             backup_file = latest_backup['backup_file']
             hash_match = latest_backup['hash_match']
             if hash_match == True:
-                script_file.write(f'cp "{backup_file}" "{source_location}" ')
+                relative_path = os.path.relpath(source_location, home_dir)
+                destination_location = os.path.join(restore_dir, relative_path)
+                destination_dir = os.path.dirname(destination_location)
+                script_file.write(f'if [ ! -d "{destination_dir}" ]; then\n')
+                script_file.write(f'    mkdir -p "{destination_dir}"\n')
+                script_file.write(f'fi\n')
+                script_file.write(f'cp "{backup_file}" "{destination_location}" ')
                 script_file.write('|| {\n')
                 script_file.write('    exit_code=$?\n')
-                script_file.write(f'    echo "{source_location} restore failed with exit code: $exit_code"\n')
+                script_file.write(f'    echo "{destination_location} restore failed with exit code: $exit_code"\n')
                 script_file.write('}\n')
+                script_file.write('echo -n .\n')
             else:
-                script_file.write(f'echo Error - hash mismatch in "{backup_file}"\n\n')
+                script_file.write(f'echo ERROR - hash mismatch in "{backup_file}!"\n\n')
         script_file.write('echo Files restored from backup.\n')
  #       script_file.write('sleep 15\n') # Use this to keep terminal window open
     print("Restore script 'restore_backup.sh' generated successfully.")
     print("Do 'chmod 775 restore_backup.sh' to make script executable.")
 
-def generate_windows_restore_script(backup_info, batch_file_path):
+def generate_windows_restore_script(backup_info, batch_file_path, home_dir, restore_dir):
     with open(batch_file_path, 'w') as batch_file:
         batch_file.write('REM Backup restore script\n\n') 
         batch_file.write('@echo off\n')
         batch_file.write('setlocal enabledelayedexpansion\n')
-        batch_file.write('echo Are you sure you want to restore files from backup? (Y/N)\n')
+        batch_file.write(f'echo Are you sure you want to restore files into {restore_dir}? (Y/N)\n')
         batch_file.write('set /p choice=\n')
         batch_file.write('if /i not "%choice%"=="Y" (\n')
         batch_file.write('    echo Operation aborted.\n')
@@ -102,13 +110,16 @@ def generate_windows_restore_script(backup_info, batch_file_path):
             backup_file = latest_backup['backup_file']
             hash_match = latest_backup['hash_match']
             if hash_match == True:
-                source_dir = os.path.dirname(source_location)
-                batch_file.write(f'if not exist "{source_dir}" mkdir "{source_dir}"\n')
-                batch_file.write(f'copy "{backup_file}" "{source_location}"\n')
+                relative_path = os.path.relpath(source_location, home_dir)
+                destination_location = os.path.join(restore_dir, relative_path)
+                destination_dir = os.path.dirname(destination_location)
+                batch_file.write(f'if not exist "{destination_dir}" mkdir "{destination_dir}"\n')
+                batch_file.write(f'copy "{backup_file}" "{destination_location}"\n')
                 batch_file.write(f'if errorlevel 1 (\n')
-                batch_file.write(f'    echo Restoring {source_location} failed with exit code: %errorlevel%\n)\n')
+                batch_file.write(f'    echo Restoring {destination_location} failed with exit code: %errorlevel%\n)\n')
+                batch_file.write('echo -n .\n')
             else:
-                batch_file.write(f'echo Error - hash mismatch in "{backup_file}"\n\n')
+                batch_file.write(f'echo ERROR - hash mismatch in "{backup_file}!"\n\n')
         batch_file.write('echo Files restored from backup.\n')
         batch_file.write('timeout /T 15\n')
     print("Restore script 'restore_backup.bat' generated successfully.")
@@ -134,7 +145,7 @@ if __name__ == "__main__":
     # Specify the full path to the script within the backup base directory
     if str(os.name) == 'nt':
         script_file_path = os.path.join(backup_base_dir, "restore_backup.bat")
-        generate_windows_restore_script(backup_info, script_file_path)
+        generate_windows_restore_script(backup_info, script_file_path, home_dir, restore_dir)
     else:
         script_file_path = os.path.join(backup_base_dir, "restore_backup.sh")
-        generate_restore_script(backup_info, script_file_path)
+        generate_restore_script(backup_info, script_file_path, home_dir, restore_dir)

@@ -1,47 +1,49 @@
-**Purpose of Script:**
+**Purpose of Script: backup.py**
 
-The purpose of the script is to perform incremental file backups from one or more source directories to a backup directory. This script is designed to provide users with a reliable and efficient way to create backups of important files while maintaining a record of these backups. It ensures that only new or modified files are backed up, reducing redundancy and saving storage space.
+The purpose of this script is to perform an incremental backup of specified source directories to a backup base directory. It ensures that the backup directories and files are valid, and handles excluded directories during the backup process. The script also logs information about the backup operation.
 
 **Inputs and Outputs:**
 
-**Inputs:**
+*Inputs:*
+- `home_dir`: The home directory of the user.
+- `source_dirs`: A list of source directories to be backed up.
+- `backup_base_dir`: The base directory where backups are stored.
+- `excluded_dirs`: A list of directories to be excluded from the backup.
 
-1. **Source Directories:** Users specify one or more source directories from which files should be backed up. These directories contain the files that need to be protected.
-
-2. **Backup Base Directory:** Users specify the backup base directory where the backups will be stored. This is the root location where all backup data will be organized.
-
-3. **Excluded Directories:** Users can specify directories within the source directories that should be excluded from the backup. This allows for customization of which files should be backed up.
-
-4. **Configuration File:** The script imports configuration data from an external Python file, `backup_config.py`, which contains information about source directories, the backup base directory, and excluded directories. This enhances script portability and flexibility.
-
-**Outputs:**
-
-1. **Backup Files:** The script creates backup copies of files from the source directories and stores them in a dated backup directory structure within the specified backup base directory. This ensures that each backup is organized by date and source directory.
-
-2. **Backup Database:** For each backup, a database text file is generated. This file lists all the files included in the backup, showing their full paths in the source and backup folders. Additionally, it includes the MD5 hash of each file.
-
-3. **Log File:** The script generates a log file, `backup_log.txt`, within the backup base directory. This file records the date the script was run and the number of files included in the backup on each date. It appends new information to the existing log if it already exists.
+*Outputs:*
+- Incremental backup of specified source directories to the backup base directory.
+- `backup_log.txt`: A log file containing information about the backup operation.
+- Backup database text file (`backup_database_<datetime>.txt`) detailing the source and backup file paths, along with their MD5 hashes.
 
 **General Operational Principles:**
 
-1. **Hash Calculation:** The script calculates an MD5 hash for each file to identify whether it has been modified since the last backup. The hash includes the file path and data, making it unique even for identical files in different locations.
+1. **Directory Validation:**
+   - The script checks if the source directories, backup base directory, and home directory exist and have the necessary permissions.
+   - Errors are logged and displayed if any of the directories are invalid.
 
-2. **Incremental Backup:** The script performs incremental backups, meaning it only copies files that have changed or are new since the last backup. This minimizes redundancy and speeds up the backup process.
+2. **Logging Configuration:**
+   - Logging is configured to record the date and time of the backup operation.
+   - Log messages are stored in `backup_log.txt`.
 
-3. **Exclusion of Directories:** Users can specify directories to exclude from the backup, allowing for customization based on specific requirements. This is useful for ignoring temporary or unnecessary files.
+3. **Backup Process:**
+   - The script performs an incremental backup by checking for new or modified files in the source directories.
+   - It calculates the MD5 hash of each source file and compares it with the latest backup.
+   - If the file is new or modified, it is copied to the appropriate backup directory structure under the backup base directory.
+   - Backup progress is indicated by printing a dot (`.`) for each file processed.
+   - Information about the backup operation, including the source file, backup file, and MD5 hash, is stored in the backup database text file.
+   - The backup database text file is saved in the format `backup_database_<datetime>.txt` in the backup base directory.
 
-4. **Logging:** The script logs its activities to a log file, providing a historical record of backup operations. It includes the date and time of each backup, along with the number of files included.
+4. **File Hash Calculation:**
+   - MD5 hashes of source files and their backup copies are calculated and compared to ensure data integrity.
+   - The MD5 hash of each source file is calculated and stored in the backup database text file.
+   - During subsequent backups, the MD5 hash of the source file is compared with the hash stored in the database to detect changes.
 
-5. **Error Handling:** The script checks the existence and permissions of source and backup directories, providing informative error messages to the terminal for any issues detected. It also checks write permissions for the backup directory.
+5. **Backup Database:**
+   - The backup database contains information about the source files, their corresponding backup paths, and MD5 hashes.
+   - Each backup operation creates a new database file with a timestamp in its name, ensuring a record of each backup session.
 
-**Options for Future Development (5 examples):**
+6. **Backup Completion and Runtime Logging:**
+   - After the backup operation is completed, the script logs the date and time, as well as the number of files included in the backup.
+   - The overall runtime of the backup process is displayed to the user in seconds.
 
-1. **Scheduled Backups:** Implement a scheduling feature that allows users to automate backups at specified intervals, such as daily, weekly, or monthly.
-
-2. **Encryption:** Add an option for encrypting backup files, providing an extra layer of security for sensitive data.
-
-3. **Compression:** Integrate file compression to reduce the storage space required for backups. This can help save disk space and speed up transfer times for offsite backups.
-
-4. **User Interface:** Develop a graphical user interface (GUI) for the script, making it more accessible to users who are not comfortable with command-line interfaces.
-
-5. **Selective Restoration:** Enhance the script to support selective restoration of files from backups, allowing users to choose which files or directories to restore, rather than restoring the entire backup.
+**Overall, the script provides an organized and systematic approach to incremental backups, ensuring data integrity and maintaining a detailed record of the backup history. It offers flexibility through configurations and error handling mechanisms, making it a reliable tool for regular data backup tasks.**

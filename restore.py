@@ -73,13 +73,19 @@ def generate_restore_script(backup_info, script_file_path):
         for source_location, backups in backup_info.items():
             latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
             backup_file = latest_backup['backup_file']
-            script_file.write(f'cp "{backup_file}" "{source_location}')
-            script_file.write('|| {\n')
-            script_file.write('    exit_code=$?\n')
-            script_file.write(f'    echo "{source_location} restore failed with exit code: $exit_code"\n')
-            script_file.write('}\n')
+            hash_match = latest_backup['hash_match']
+            if hash_match == True:
+                script_file.write(f'cp "{backup_file}" "{source_location}" ')
+                script_file.write('|| {\n')
+                script_file.write('    exit_code=$?\n')
+                script_file.write(f'    echo "{source_location} restore failed with exit code: $exit_code"\n')
+                script_file.write('}\n')
+            else:
+                script_file.write(f'echo Error - hash mismatch in "{backup_file}"\n\n')
+        script_file.write('echo Files restored from backup.\n')
+ #       script_file.write('sleep 15\n') # Use this to keep terminal window open
     print("Restore script 'restore_backup.sh' generated successfully.")
-
+    print("Do 'chmod 775 restore_backup.sh' to make script executable.")
 
 def generate_windows_restore_script(backup_info, batch_file_path):
     with open(batch_file_path, 'w') as batch_file:
@@ -94,11 +100,15 @@ def generate_windows_restore_script(backup_info, batch_file_path):
         for source_location, backups in backup_info.items():
             latest_backup = backups[-1]  # Get the latest version (last entry) from the list of backups
             backup_file = latest_backup['backup_file']
-            source_dir = os.path.dirname(source_location)
-            batch_file.write(f'if not exist "{source_dir}" mkdir "{source_dir}"\n')
-            batch_file.write(f'copy "{backup_file}" "{source_location}"\n')
-            batch_file.write(f'if errorlevel 1 (\n')
-            batch_file.write(f'    echo Restoring {source_location} failed with exit code: %errorlevel%\n)\n')
+            hash_match = latest_backup['hash_match']
+            if hash_match == True:
+                source_dir = os.path.dirname(source_location)
+                batch_file.write(f'if not exist "{source_dir}" mkdir "{source_dir}"\n')
+                batch_file.write(f'copy "{backup_file}" "{source_location}"\n')
+                batch_file.write(f'if errorlevel 1 (\n')
+                batch_file.write(f'    echo Restoring {source_location} failed with exit code: %errorlevel%\n)\n')
+            else:
+                batch_file.write(f'echo Error - hash mismatch in "{backup_file}"\n\n')
         batch_file.write('echo Files restored from backup.\n')
         batch_file.write('timeout /T 15\n')
     print("Restore script 'restore_backup.bat' generated successfully.")
